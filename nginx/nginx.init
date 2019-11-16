@@ -28,28 +28,56 @@ log_success_msg(){
 
 log_failed_msg(){
 
-    echo "failed ! $@"
+    echo "failed! $@"
+}
+
+wait_for_pid(){
+
+    i=0
+
+    while test "$i" -lt 35 ; do
+
+        case "$1" in
+
+            created)
+
+                [ -f  "$2" ] && i='' && break;           
+            ;;
+            removed)
+                [ ! -f "$2" ] && i="" && break;
+            ;;
+            *)
+            echo "usage: $0 {created|removed} pid_path"
+        esac
+
+        echo -n "."  && i=$((i+1))
+        sleep 1
+
+    done
+
+
 }
 
 nginx_start (){
 
     if [ -r ${pid_path} ]; then
 
-        echo "${name} is running..";
+        echo "${name} is running.";
         exit 1;
     fi
 
-    echo  "Starting ${name}...";
+    echo "Starting ${name}";
 
-    ${bin_path} -t -c ${conf_path} && ${bin_path} -c ${conf_path} && log_success_msg " Starting ${name}" || (log_failed_msg "Starting ${name}" &&  exit 1)
+    ${bin_path} -t -c ${conf_path} && ${bin_path} -c ${conf_path} && wait_for_pid created ${pid_path}  && \
+    log_success_msg " Starting ${name}" || (log_failed_msg "Starting ${name}" &&  exit 1)
 
 }
 
 nginx_stop(){
     
-    echo "Stop ${name}..."
+    echo  "Stop ${name}"
 
-    ${bin_path} -s $1 && log_success_msg " Stop ${name}"
+    ${bin_path} -s $1 && wait_for_pid removed ${pid_path} && log_success_msg " Stop ${name}"
 }
 
 nginx_reload(){
@@ -61,7 +89,7 @@ nginx_reload(){
 
 nginx_test(){
     
-    echo  "test ${nginx} configuration...";
+    echo  "test ${nginx} configuration.";
 
     ${bin_path} -t -c ${conf_path} 
 }
@@ -70,14 +98,14 @@ nginx_status(){
     
     if [ ! -r ${pid_path} ]; then
 
-        echo  "Warning: ${name} is not running..." && exit 1
+        echo  "Warning: ${name} is not running." && exit 1
     fi
 
     PID=`cat ${pid_path}`
 
     if ps -p ${PID}  | grep -q ${PID} ;then
 
-        echo  "${name} (pid ${PID}) is running..."
+        echo  "${name} (pid ${PID}) is running."
         
     else
 
@@ -93,7 +121,6 @@ case "$1" in
     ;;       
 
     stop)
-
         nginx_stop $1
     ;;
 
