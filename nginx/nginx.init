@@ -1,0 +1,122 @@
+#! /bin/sh
+
+# author: songwang gao 
+# date: 16/11/2019
+# comments of LSB http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/initscrcomconv.html
+### BEGIN INIT INFO
+# Provides:         nginx
+# Required-Start:   $remote_fs $network
+# Required-Stop:    $remote_fs $network
+# Default-Start:    2 3 4 5
+# Default-Stop:     0 1 6
+# Short-Description: starts tegine
+# Description: start tengine service
+### END INIT INFO
+
+
+prefix=/usr/local/nginx/
+name=nginx
+
+bin_path=${prefix}/sbin/${name}
+pid_path=${prefix}/logs/${name}.pid
+conf_path=${prefix}/conf/${name}.conf
+
+log_success_msg(){
+
+    echo "success! $@";
+}
+
+log_failed_msg(){
+
+    echo "failed ! $@"
+}
+
+nginx_start (){
+
+    if [ -r ${pid_path} ]; then
+
+        echo "${name} is running..";
+        exit 1;
+    fi
+
+    echo  "Starting ${name}...";
+
+    ${bin_path} -t -c ${conf_path} && ${bin_path} -c ${conf_path} && log_success_msg " Starting ${name}" || (log_failed_msg "Starting ${name}" &&  exit 1)
+
+}
+
+nginx_stop(){
+    
+    echo "Stop ${name}..."
+
+    ${bin_path} -s $1 && log_success_msg " Stop ${name}"
+}
+
+nginx_reload(){
+    
+    echo "reload ${name}..."
+
+    ${bin_path} -s $1 && log_success_msg " Reload ${name}"
+}
+
+nginx_test(){
+    
+    echo  "test ${nginx} configuration...";
+
+    ${bin_path} -t -c ${conf_path} 
+}
+
+nginx_status(){
+    
+    if [ ! -r ${pid_path} ]; then
+
+        echo  "Warning: ${name} is not running..." && exit 1
+    fi
+
+    PID=`cat ${pid_path}`
+
+    if ps -p ${PID}  | grep -q ${PID} ;then
+
+        echo  "${name} (pid ${PID}) is running..."
+        
+    else
+
+        echo   "${name} dead, but pid exist."
+
+    fi
+}
+
+case "$1" in 
+
+    start)
+        nginx_start $1
+    ;;       
+
+    stop)
+
+        nginx_stop $1
+    ;;
+
+    restart)
+
+        nginx_stop stop
+        nginx_start start
+    ;;
+    reload)
+        nginx_reload $1
+    ;;
+    status)
+
+        nginx_status
+    ;;
+
+    test)
+        nginx_test
+    ;;
+
+    *)
+
+        echo "usage: $0 {start|stop|restart|reload|status|test}" && exit 1 
+    ;;
+
+ esac
